@@ -95,3 +95,56 @@ if(TopBox_ and BottomBox_ and t_today)
         l2:= label.new(bar_index, na,text=tostring(dyest_re-dyest_gr), color=color.red,style=label.style_labeldown, yloc=yloc.abovebar)
         //label.delete(l2[1])
         labelcountneg:=true
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+usePosSize = 100000
+riskPerc   = .25
+
+
+
+
+riskEquity  = (riskPerc / 100) * strategy.equity
+atrCurrency = (atr(20) * syminfo.pointvalue)
+posSize     = usePosSize ? floor(riskEquity / atrCurrency) : 1
+
+//enter trade at newbar i.e 1015
+
+if(validSession_entry)
+    if (count_green>count_red  and labelcountpos and TopBox_)
+        strategy.close(id="ES")
+        strategy.entry(id="EL", long=true, qty=posSize)
+   
+    if (count_green<count_red  and labelcountneg and BottomBox_)
+        strategy.close(id="EL")
+        strategy.entry(id="ES", long=false, qty=posSize)
+
+
+
+// Configure trail stop level with input options (optional)
+longTrailPerc = input(title="Trail Long Loss (%)", minval=0.0, step=0.1, defval=2) * 0.01
+
+shortTrailPerc = input(title="Trail Short Loss (%)", minval=0.0, step=0.1, defval=2) * 0.01
+     
+// Determine trail stop loss prices
+longStopPrice = 0.0, shortStopPrice = 0.0
+
+longStopPrice := if (strategy.position_size > 0)
+    stopValue = close * (1 - longTrailPerc)
+    max(stopValue, longStopPrice[1])
+else
+    0
+
+shortStopPrice := if (strategy.position_size < 0)
+    stopValue = close * (1 + shortTrailPerc)
+    min(stopValue, shortStopPrice[1])
+else
+    99999
+//exit position
+if (strategy.position_size < 0)
+    strategy.exit(id="ES", stop=shortStopPrice)
+if (validSession_exit )
+    strategy.close(id="ES") 
+if (strategy.position_size > 0)
+    strategy.exit(id="EL", stop=longStopPrice) 
+if (validSession_exit )
+    strategy.close(id="EL")
+    

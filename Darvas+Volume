@@ -95,7 +95,7 @@ if(TopBox_ and BottomBox_ and t_today)
         l2:= label.new(bar_index, na,text=tostring(dyest_re-dyest_gr), color=color.red,style=label.style_labeldown, yloc=yloc.abovebar)
         //label.delete(l2[1])
         labelcountneg:=true
-///////////////////////////////////////////////////////////////////code ema starts here////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////color code ema starts here////////////////////////////////////////////////////////
 //shor-term trend tracking
 EMA_55 = input(title="EMA55", defval=55)
 ema55  = ema(close,EMA_55)
@@ -157,38 +157,3 @@ fill(p144, p338, color=fill_green ? #a5d6a7 : na, transp=80, title="bull")
 fill(p144, p338, color=fill_red ? #f48fb1: na, transp=80, title="bull？")
 fill(p144, p338, color=fill_lightgreen ? #a5d6a7: na, transp=90, title="bear")
 fill(p144, p338, color=fill_lightred ? #f48fb1: na, transp=90, title="bear？")
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////   Filter4     Vegas Uptrend Filter          //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-uptrend=  ema55> ema144 and ema144> ema338 and ema338> ema576 and close>ema338
-
-fill_uptrend= if uptrend
-    #a5d6a7
-bgcolor(fill_uptrend, transp =95, color = fill_uptrend, title= "Up_trend")
-already_in_uptrend=false
-if(uptrend[1]==true)
-    already_in_uptrend:=true
-
-already_in_uptrend_15min=false
-already_in_uptrend_30min=false
-already_in_uptrend_60min=false
-already_in_uptrend_120min=false
-
-uptrend_min_entered="none"
-if(uptrend_15min_1==true)
-    already_in_uptrend_15min:=true
-    uptrend_min_entered := "entered uptrend region in 15 min"
-
-if(uptrend_30min_1==true)
-    already_in_uptrend_30min:=true
-    uptrend_min_entered := "entered uptrend region in 30 min"
-
-if(uptrend_60min_1==true)
-    already_in_uptrend_60min:=true
-    uptrend_min_entered := "entered uptrend region in 60 min"
-
-if(uptrend_120min_1==true)
-    already_in_uptrend_120min:=true
-    uptrend_min_entered := "entered uptrend region in 60 min"
-
-bgcolor(color=(uptrend_15min and not already_in_uptrend_15min) ? color.red : (uptrend_30min and not already_in_uptrend_30min) ? color.blue : (uptrend_60min and not already_in_uptrend_60min) ? color.lime : (uptrend_120min and not already_in_uptrend_120min) ? color.gray : na, transp=0)
-

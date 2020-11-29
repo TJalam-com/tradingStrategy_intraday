@@ -1,0 +1,247 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © badshah_e_alam
+
+//@version=4
+// 1. Define strategy settings
+strategy(title="strategy Dbox+volume ", overlay=true,
+     pyramiding=0, initial_capital=100000,
+     commission_type=strategy.commission.cash_per_order,
+     commission_value=4, slippage=2,
+     calc_on_every_tick=true,max_labels_count=75)
+
+
+////intraday session only
+open_session_exit=input(type=input.session,defval="1515-1520")
+session_exit = time("1", open_session_exit)
+validSession_exit=(na(session_exit) ? 0 : 1)
+////intraday session only
+open_session_entry=input(type=input.session,defval="0930-1030")
+session_entry = time("1", open_session_entry)
+validSession_entry=(na(session_entry) ? 0 : 1)
+
+
+highTimeFrame = input("D", type=input.resolution)
+sessSpec = input("0915-1530", type=input.session)
+t_today = time(timeframe.period, "1500-0945")
+
+is_newbar(res, sess) =>
+    t = time(res, sess)
+    na(t[1]) and not na(t) or t[1] < t
+
+newbar = is_newbar("1015", sessSpec)
+
+yest_gr=0.0
+yest_re=0.0
+count_green=0
+count_red=0
+if(t_today)
+    for i = 1 to 22
+        if(open[i]<close[i])
+            yest_gr:=yest_gr+volume[i]
+            count_green:=count_green+1
+        if(open[i]>close[i])
+            yest_re:=yest_re+volume[i]
+            count_red:=count_red+1
+            
+bgcolor(color=(yest_gr>yest_re) ? color.green : (yest_re>yest_gr) ? color.red:na, transp=85)
+
+
+
+boxp=input(5, "BOX LENGTH")
+LL = lowest(low,boxp)
+k1=highest(high,boxp)
+k2=highest(high,boxp-1)
+k3=highest(high,boxp-2)
+
+NH =  valuewhen(high>k1[1],high,0)
+box1 =k3<k2
+TopBox = valuewhen(barssince(high>k1[1])==boxp-2 and box1, NH, 0)
+BottomBox = valuewhen(barssince(high>k1[1])==boxp-2 and box1, LL, 0)
+TopBox_=TopBox
+BottomBox_=BottomBox
+if(t_today and TopBox[1]==TopBox and TopBox[2]==TopBox[1] and TopBox[3]==TopBox[2] and BottomBox[1]==BottomBox and BottomBox[2]==BottomBox[1] and BottomBox[3]==BottomBox[2] )
+    TopBox_:=TopBox
+    BottomBox_:=BottomBox
+
+else
+    TopBox_:=na
+    BottomBox_:=na
+
+plot(TopBox_, linewidth=2, color=#00FF00, title="TopBox",style=plot.style_linebr)
+plot(BottomBox_, linewidth=2, color=#FF0000, title="BottomBox",style=plot.style_linebr)
+
+var label l1 = na
+var label l2 = na
+labelcountneg=false
+labelcountpos=false
+
+dyest_gr=0.0
+dyest_re=0.0
+dcount_bar=0.0
+if(TopBox_ and BottomBox_ and t_today)
+    for i = 1 to 22
+        if(TopBox_ and BottomBox_)
+            dcount_bar:=dcount_bar+1
+    for i = 1 to dcount_bar        
+        if(open[i]<close[i])
+            dyest_gr:=dyest_gr+volume[i]
+        if(open[i]>close[i])
+            dyest_re:=dyest_re+volume[i]
+    if(dyest_gr>dyest_re and dcount_bar and open<TopBox_ and open>BottomBox_)
+        l1:= label.new(bar_index, na,text=tostring(dyest_gr-dyest_re), color=color.green,style=label.style_labeldown, yloc=yloc.abovebar)
+        //label.delete(l1[1])
+        labelcountpos:=true
+    if(dyest_gr<dyest_re and dcount_bar and close>BottomBox_ and close<TopBox_)
+        l2:= label.new(bar_index, na,text=tostring(dyest_re-dyest_gr), color=color.red,style=label.style_labeldown, yloc=yloc.abovebar)
+        //label.delete(l2[1])
+        labelcountneg:=true
+///////////////////////////////////////////////////////////////////code ema starts here////////////////////////////////////////////////////////
+//shor-term trend tracking
+EMA_55 = input(title="EMA55", defval=55)
+ema55  = ema(close,EMA_55)
+
+//medium-term trend tracking(Vegas Tunnel#1)
+EMA_144 = input(title="EMA144", defval=144)
+EMA_169 = input(title="EMA169", defval=169)
+ema144 = ema(close,EMA_144)
+ema169 = ema(close,EMA_169)
+
+//2X Vegas Tunnel trend confirmation
+EMA_288 = input(title="EMA288", defval=288)
+EMA_338 = input(title="EMA338", defval=338)
+ema288 = ema(close,EMA_288)
+ema338 = ema(close,EMA_338)
+
+//bull-bear boundary 
+EMA_576 = input(title="EMA576", defval=576)
+EMA_676 = input(title="EMA676", defval=676)
+ema576 = ema(close,EMA_576)
+ema676 = ema(close,EMA_676)
+//ema plots
+//p21= plot(ema21, color=color.gray, linewidth=0,  transp=100, title="EMA 21")
+//p34= plot(ema34, color=color.gray, linewidth=0,  transp=100, title="EMA 34")
+p55= plot(ema55, color=color.white, linewidth=2,  transp=0, title="EMA 55")
+p144=plot(ema144, color=color.yellow, linewidth=1,  transp=100, title="EMA 144")
+p169=plot(ema169, color=color.yellow, linewidth=1,  transp=100, title="EMA 169")
+p288=plot(ema288, color=color.red, linewidth=1,  transp=100, title="EMA 288")
+p338=plot(ema338, color=color.red, linewidth=1,  transp=100, title="EMA 338")
+p576=plot(ema576, color=color.blue, linewidth=3, transp=50, title="EMA 576")
+p676=plot(ema676, color=#81c784, linewidth=3, transp=50, title="EMA 676")
+
+GetData_ema(res,ema_interval) =>
+    ema(security(syminfo.tickerid, res, close,gaps=true,lookahead=false) ,ema_interval)
+
+GetData_ema_1(res_1,ema_interval_1) =>
+    ema(security(syminfo.tickerid, res_1, close[1],gaps=true,lookahead=false) ,ema_interval_1)
+
+uptrend_15min=  GetData_ema('15',55)> GetData_ema('15',144) and GetData_ema('15',144)> GetData_ema('15',338) and GetData_ema('15',338)> GetData_ema('15',576) and security(syminfo.tickerid, '15', close)>GetData_ema('15',338)
+uptrend_15min_1=  GetData_ema_1('15',55)> GetData_ema_1('15',144) and GetData_ema_1('15',144)> GetData_ema_1('15',338) and GetData_ema_1('15',338)> GetData_ema_1('15',576) and security(syminfo.tickerid, '15', close)>GetData_ema_1('15',338)
+
+uptrend_30min=  GetData_ema('30',55)> GetData_ema('30',144) and GetData_ema('30',144)> GetData_ema('30',338) and GetData_ema('30',338)> GetData_ema('30',576) and security(syminfo.tickerid, '30', close)>GetData_ema('30',338)
+uptrend_30min_1=  GetData_ema_1('30',55)> GetData_ema_1('30',144) and GetData_ema_1('30',144)> GetData_ema_1('30',338) and GetData_ema_1('30',338)> GetData_ema_1('30',576) and security(syminfo.tickerid, '30', close)>GetData_ema_1('30',338)
+
+uptrend_60min=  GetData_ema('60',55)> GetData_ema('60',144) and GetData_ema('60',144)> GetData_ema('60',338) and GetData_ema('60',338)> GetData_ema('60',576) and security(syminfo.tickerid, '60', close)>GetData_ema('60',338)
+uptrend_60min_1=  GetData_ema_1('60',55)> GetData_ema_1('60',144) and GetData_ema_1('60',144)> GetData_ema_1('60',338) and GetData_ema_1('60',338)> GetData_ema_1('60',576) and security(syminfo.tickerid, '60', close)>GetData_ema_1('60',338)
+
+uptrend_120min=  GetData_ema('120',55)> GetData_ema('120',144) and GetData_ema('120',144)> GetData_ema('120',338) and GetData_ema('120',338)> GetData_ema('120',576) and security(syminfo.tickerid, '120', close)>GetData_ema('120',338)
+uptrend_120min_1=  GetData_ema_1('120',55)> GetData_ema_1('120',144) and GetData_ema_1('120',144)> GetData_ema_1('120',338) and GetData_ema_1('120',338)> GetData_ema_1('120',576) and security(syminfo.tickerid, '120', close)>GetData_ema_1('120',338)
+
+//Trend cloud color fill (green=bull, red=bear)
+
+fill_green = close > ema144 and close > ema338 and ema144 > ema338
+fill_lightgreen = ema144>= close and  ema144> ema338
+fill_red = close < ema144 and close < ema338 and ema144<ema338
+fill_lightred= close >= ema144 and ema144<ema338
+
+fill(p144, p338, color=fill_green ? #a5d6a7 : na, transp=80, title="bull")
+fill(p144, p338, color=fill_red ? #f48fb1: na, transp=80, title="bull？")
+fill(p144, p338, color=fill_lightgreen ? #a5d6a7: na, transp=90, title="bear")
+fill(p144, p338, color=fill_lightred ? #f48fb1: na, transp=90, title="bear？")
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////   Filter4     Vegas Uptrend Filter          //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+uptrend=  ema55> ema144 and ema144> ema338 and ema338> ema576 and close>ema338
+
+fill_uptrend= if uptrend
+    #a5d6a7
+bgcolor(fill_uptrend, transp =95, color = fill_uptrend, title= "Up_trend")
+already_in_uptrend=false
+if(uptrend[1]==true)
+    already_in_uptrend:=true
+
+already_in_uptrend_15min=false
+already_in_uptrend_30min=false
+already_in_uptrend_60min=false
+already_in_uptrend_120min=false
+
+uptrend_min_entered="none"
+if(uptrend_15min_1==true)
+    already_in_uptrend_15min:=true
+    uptrend_min_entered := "entered uptrend region in 15 min"
+
+if(uptrend_30min_1==true)
+    already_in_uptrend_30min:=true
+    uptrend_min_entered := "entered uptrend region in 30 min"
+
+if(uptrend_60min_1==true)
+    already_in_uptrend_60min:=true
+    uptrend_min_entered := "entered uptrend region in 60 min"
+
+if(uptrend_120min_1==true)
+    already_in_uptrend_120min:=true
+    uptrend_min_entered := "entered uptrend region in 60 min"
+
+bgcolor(color=(uptrend_15min and not already_in_uptrend_15min) ? color.red : (uptrend_30min and not already_in_uptrend_30min) ? color.blue : (uptrend_60min and not already_in_uptrend_60min) ? color.lime : (uptrend_120min and not already_in_uptrend_120min) ? color.gray : na, transp=0)
+
+///////////////////////////////////////////////////////////////////code ema trend ends here///////////////////////////////////////////
+usePosSize = 100000
+riskPerc   = .25
+
+
+
+
+riskEquity  = (riskPerc / 100) * strategy.equity
+atrCurrency = (atr(20) * syminfo.pointvalue)
+posSize     = usePosSize ? floor(riskEquity / atrCurrency) : 1
+
+//enter trade at newbar i.e 1015
+
+if(validSession_entry)
+    if (count_green>count_red  and labelcountpos and TopBox_)
+        strategy.close(id="ES")
+        strategy.entry(id="EL", long=true, qty=posSize)
+   
+    if (count_green<count_red  and labelcountneg and BottomBox_)
+        strategy.close(id="EL")
+        strategy.entry(id="ES", long=false, qty=posSize)
+
+
+
+// Configure trail stop level with input options (optional)
+longTrailPerc = input(title="Trail Long Loss (%)", minval=0.0, step=0.1, defval=2) * 0.01
+
+shortTrailPerc = input(title="Trail Short Loss (%)", minval=0.0, step=0.1, defval=2) * 0.01
+     
+// Determine trail stop loss prices
+longStopPrice = 0.0, shortStopPrice = 0.0
+
+longStopPrice := if (strategy.position_size > 0)
+    stopValue = close * (1 - longTrailPerc)
+    max(stopValue, longStopPrice[1])
+else
+    0
+
+shortStopPrice := if (strategy.position_size < 0)
+    stopValue = close * (1 + shortTrailPerc)
+    min(stopValue, shortStopPrice[1])
+else
+    99999
+//exit position
+if (strategy.position_size < 0)
+    strategy.exit(id="ES", stop=shortStopPrice)
+if (validSession_exit )
+    strategy.close(id="ES") 
+if (strategy.position_size > 0)
+    strategy.exit(id="EL", stop=longStopPrice) 
+if (validSession_exit )
+    strategy.close(id="EL")
+    
